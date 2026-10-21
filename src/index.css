@@ -1,0 +1,232 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary: #0F766E;
+  --primary-light: #14B8A6;
+  --primary-hover: #0d655e;
+  --accent: #10B981;
+  --bg-color: #F1F5F9;
+  --surface: #FFFFFF;
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --border-color: #E2E8F0;
+  
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  --shadow-float: 0 -4px 12px rgba(0, 0, 0, 0.05);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+/* Base UI Elements */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  letter-spacing: 0.3px;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
+}
+
+.btn-primary:disabled {
+  background-color: var(--text-muted);
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.input-field {
+  padding: 0.875rem 1rem;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+  background: var(--surface);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+}
+
+.input-field:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.1);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: 1.25rem;
+}
+
+/* --- OPERATOR RESPONSIVE STYLES --- */
+.operator-container {
+  display: flex;
+  min-height: 100vh;
+  background: #F1F5F9;
+}
+
+.operator-sidebar {
+  width: 250px;
+  background: var(--text-main);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  transition: transform 0.3s ease;
+}
+
+.operator-main {
+  margin-left: 250px;
+  flex: 1;
+  padding: 2rem;
+  width: calc(100% - 250px);
+  transition: all 0.3s ease;
+}
+
+/* --- RESPONSIVE GRIDS --- */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Kung cellphone ang screen */
+@media (max-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mobile-header {
+    display: flex !important;
+  }
+  
+  .operator-sidebar {
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    height: 70px;
+    flex-direction: row;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-right: none;
+  }
+  
+  .operator-sidebar-header, 
+  .operator-sidebar-logout {
+    display: none !important;
+  }
+
+   .operator-sidebar nav {
+    flex-direction: row !important;
+    justify-content: space-between !important; /* Giusab gikan sa space-around */
+    align-items: center;
+    width: 100%;
+    padding: 0 5px !important; /* Gamay nga padding sa kilid */
+  }
+
+  .operator-sidebar nav a {
+    flex: 1; /* Kini maghatag og pantay nga space sa matag item */
+    flex-direction: column;
+    font-size: 0.65rem !important; /* Gipakamay ang font */
+    gap: 2px !important;
+    padding: 6px 2px !important;
+    text-align: center;
+    justify-content: center;
+    overflow: hidden; /* Para dili mugawas ang text */
+  }
+  
+  .operator-sidebar nav a svg {
+    width: 18px !important; /* Gipakamay ang icon */
+    height: 18px !important;
+  }
+
+  .operator-main {
+    margin-left: 0;
+    width: 100%;
+    padding: 1rem;
+    padding-top: 70px;
+    padding-bottom: 90px;
+  }
+
+  body, html {
+    overflow-x: hidden;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #F1F5F9;
+}
+
+/* --- DASHBOARD SPLIT LAYOUT --- */
+.dashboard-split-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Sa mobile view, pugson nga mag-stack (isa sa ibabaw sa usa) */
+@media (max-width: 768px) {
+  .dashboard-split-layout {
+    grid-template-columns: 1fr;
+  }
+}
