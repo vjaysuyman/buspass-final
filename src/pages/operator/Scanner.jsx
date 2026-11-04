@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ScanLine, CheckCircle2, XCircle, Camera, Keyboard, QrCode } from "lucide-react";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode"; // ✅ KINI ANG GIPULI (walay 'Scanner' sa katapusan)
 import { supabase } from "../../lib/supabaseClient";
 
 export default function Scanner() {
@@ -8,11 +8,10 @@ export default function Scanner() {
   const [result, setResult] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [activeTab, setActiveTab] = useState("camera"); // 'camera' | 'manual'
+  const [activeTab, setActiveTab] = useState("camera");
   
   const scannerRef = useRef(null);
 
-  // Function para mo-verify sa ticket
   const verifyTicket = async (reference) => {
     setIsScanning(true);
     setResult(null);
@@ -20,7 +19,7 @@ export default function Scanner() {
     try {
       const { data: booking, error } = await supabase
         .from('bookings')
-        .select('*, trips(bus_name, departure_time)') // Kuhaon pud ang trip details
+        .select('*, trips(bus_name, departure_time)')
         .eq('reference', reference.toUpperCase())
         .single();
 
@@ -39,8 +38,7 @@ export default function Scanner() {
     } catch (err) {
       setResult({ success: false, message: "System Error" });
     } finally {
-      setIsScanning(false);
-      setTicketRef(""); 
+      setIsScanning(false); 
     }
   };
 
@@ -48,42 +46,51 @@ export default function Scanner() {
     e.preventDefault();
     if (!ticketRef) return;
     verifyTicket(ticketRef);
+    setTicketRef(""); 
   };
 
-  // Setup Camera Scanner
+  // ✅ BAG-ONG CAMERA LOGIC GAMIT ANG Html5Qrcode
   useEffect(() => {
     if (!isCameraActive) {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-        scannerRef.current = null;
+        scannerRef.current.stop().then(() => {
+          scannerRef.current.clear();
+          scannerRef.current = null;
+        }).catch(console.error);
       }
       return;
     }
 
     if (isCameraActive && !scannerRef.current) {
-      const scanner = new Html5QrcodeScanner(
-        "reader", 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        false
-      );
-      
-      scannerRef.current = scanner;
+      const html5QrCode = new Html5Qrcode("reader"); // ✅ PRO MODE
+      scannerRef.current = html5QrCode;
 
-      scanner.render(
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          scanner.clear();
-          setIsCameraActive(false);
-          scannerRef.current = null;
-          verifyTicket(decodedText);
+          // ✅ DERETSO NGA I-VERIFY UG DILI I-DISPLAY SA LIBRARY UI
+          html5QrCode.stop().then(() => {
+            html5QrCode.clear();
+            scannerRef.current = null;
+            setIsCameraActive(false);
+            verifyTicket(decodedText);
+          }).catch(console.error);
         },
-        (error) => {}
-      );
+        (errorMessage) => {}
+      ).catch((err) => {
+        console.error("Failed to start camera:", err);
+        alert("Could not start camera. Please check permissions.");
+        setIsCameraActive(false);
+      });
     }
 
     return () => {
       if (scannerRef.current) {
-        scannerRef.current.clear().catch(console.error);
-        scannerRef.current = null;
+        scannerRef.current.stop().then(() => {
+          scannerRef.current.clear();
+          scannerRef.current = null;
+        }).catch(console.error);
       }
     };
   }, [isCameraActive]);
@@ -96,7 +103,6 @@ export default function Scanner() {
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>Scan passenger tickets or enter reference manually.</p>
       </div>
 
-      {/* RESULT DISPLAY */}
       {result && (
         <div className="animate-slide-up" style={{ 
           background: result.success ? "#ECFDF5" : "#FEF2F2", 
@@ -120,7 +126,6 @@ export default function Scanner() {
         </div>
       )}
 
-      {/* TABS */}
       <div style={{ display: "flex", background: "#E2E8F0", padding: "4px", borderRadius: "12px", marginBottom: "1.5rem" }}>
         <button 
           onClick={() => { setActiveTab("camera"); setIsCameraActive(true); }} 
@@ -136,21 +141,12 @@ export default function Scanner() {
         </button>
       </div>
 
-      {/* CAMERA TAB */}
       {activeTab === "camera" && (
         <div className="card" style={{ padding: "1.5rem", minHeight: "350px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {isCameraActive ? (
-            <div className="animate-slide-up">
-              <div id="reader" style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: "2px solid var(--primary)" }}></div>
-              <button 
-                onClick={() => setIsCameraActive(false)}
-                className="btn" 
-                style={{ width: "100%", marginTop: "1rem", background: "#FEE2E2", color: "#B91C1C" }}
-              >
-                Cancel Scan
-              </button>
-            </div>
-          ) : (
+          {/* KINI NGA DIV ANG GAMITON SA CAMERA, AYAW I-UNMOUNT */}
+          <div id="reader" style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: isCameraActive ? "2px solid var(--primary)" : "none", display: isCameraActive ? "block" : "none" }}></div>
+          
+          {!isCameraActive && (
             <div style={{ textAlign: "center" }}>
               <div style={{ background: "#F0FDF4", width: "80px", height: "80px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem auto" }}>
                 <QrCode size={40} style={{ color: "var(--primary)" }} />
@@ -168,10 +164,19 @@ export default function Scanner() {
               </button>
             </div>
           )}
+
+          {isCameraActive && (
+            <button 
+              onClick={() => setIsCameraActive(false)}
+              className="btn" 
+              style={{ width: "100%", marginTop: "1rem", background: "#FEE2E2", color: "#B91C1C" }}
+            >
+              Cancel Scan
+            </button>
+          )}
         </div>
       )}
 
-      {/* MANUAL TAB */}
       {activeTab === "manual" && (
         <div className="card animate-slide-up" style={{ padding: "2rem 1.5rem", textAlign: "center", minHeight: "350px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ background: "#F1F5F9", width: "80px", height: "80px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem auto" }}>
