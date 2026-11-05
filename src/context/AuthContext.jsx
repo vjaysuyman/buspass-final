@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
+import OneSignal from 'react-onesignal'; // ✅ IMPORTANTE: I-import ang OneSignal
 
 const AuthContext = createContext(null);
 
@@ -19,10 +20,15 @@ export function AuthProvider({ children }) {
 
     // 2. Listener kung naay login/logout
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) fetchProfile(session.user);
-      else {
+      if (session) {
+        fetchProfile(session.user);
+        // ✅ KINI ANG MAG-LINK SA USER SA ONESIGNAL INIG-LOGIN
+        OneSignal.login(session.user.id); 
+      } else {
         setUser(null);
         setLoading(false);
+        // ✅ I-logout ang user sa OneSignal
+        OneSignal.logout();
       }
     });
 

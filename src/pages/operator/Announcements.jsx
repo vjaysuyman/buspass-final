@@ -30,16 +30,27 @@ export default function Announcements() {
   }, []);
 
   const handleCreate = async (e) => {
-    e.preventDefault();
-    try {
-      await announcementApi.create(formData);
-      setIsModalOpen(false);
-      setFormData({ title: "", content: "", type: "info" });
-      loadAnnouncements();
-    } catch (error) {
-      alert("Failed to post announcement.");
-    }
-  };
+  e.preventDefault();
+  try {
+    // 1. I-save sa database
+    await announcementApi.create(formData);
+    
+    // 2. I-trigger ang push notification
+    await supabase.functions.invoke('send-push', {
+      body: { 
+        title: formData.title, 
+        message: formData.content 
+      }
+    });
+    
+    setIsModalOpen(false);
+    setFormData({ title: "", content: "", type: "info" });
+    loadAnnouncements();
+  } catch (error) {
+    alert("Failed to post announcement.");
+    console.error(error);
+  }
+};
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this announcement?")) return;

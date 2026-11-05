@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Mail, Shield, LogOut, Camera } from "lucide-react";
+import OneSignal from "react-onesignal";
+import { User, Mail, Shield, LogOut, Camera, Bell } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 export default function Profile() {
@@ -15,6 +16,7 @@ export default function Profile() {
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
+
     if (file) {
       try {
         setIsSaving(true);
@@ -28,21 +30,67 @@ export default function Profile() {
     }
   };
 
+  // Enable OneSignal push notifications
+  const enableNotifications = async () => {
+    try {
+      await OneSignal.Notifications.requestPermission();
+      alert("Push notifications enabled!");
+    } catch (error) {
+      console.error("Error enabling notifications:", error);
+      alert("Failed to enable push notifications.");
+    }
+  };
+
   return (
     <div style={{ padding: "1rem" }}>
-      <h2 style={{ fontSize: "1.5rem", fontWeight: "700", marginBottom: "1.5rem", color: "var(--text-main)" }}>Profile Settings</h2>
+      <h2
+        style={{
+          fontSize: "1.5rem",
+          fontWeight: "700",
+          marginBottom: "1.5rem",
+          color: "var(--text-main)",
+        }}
+      >
+        Profile Settings
+      </h2>
 
-      <div className="card" style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div
+        className="card"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "1rem",
+          marginBottom: "1.5rem",
+        }}
+      >
         {/* Avatar with upload overlay */}
         <div style={{ position: "relative", flexShrink: 0 }}>
           {user?.avatar_url ? (
             <img
               src={user.avatar_url}
               alt="avatar"
-              style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "2px solid #ccfbf1" }}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: "50%",
+                objectFit: "cover",
+                border: "2px solid #ccfbf1",
+              }}
             />
           ) : (
-            <div style={{ background: "#ccfbf1", color: "var(--primary)", padding: "1rem", borderRadius: "50%", width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div
+              style={{
+                background: "#ccfbf1",
+                color: "var(--primary)",
+                padding: "1rem",
+                borderRadius: "50%",
+                width: 64,
+                height: 64,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <User size={32} />
             </div>
           )}
@@ -67,6 +115,7 @@ export default function Profile() {
             }}
           >
             <Camera size={14} />
+
             <input
               type="file"
               accept="image/*"
@@ -78,31 +127,132 @@ export default function Profile() {
         </div>
 
         <div style={{ minWidth: 0 }}>
-          <h3 style={{ fontSize: "1.2rem", fontWeight: "700" }}>{user?.first_name} {user?.last_name}</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", textTransform: "capitalize" }}>{user?.role}</p>
-          {isSaving && <p style={{ color: "var(--primary)", fontSize: "0.75rem", marginTop: "2px" }}>Uploading...</p>}
+          <h3
+            style={{
+              fontSize: "1.2rem",
+              fontWeight: "700",
+            }}
+          >
+            {user?.first_name} {user?.last_name}
+          </h3>
+
+          <p
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.875rem",
+              textTransform: "capitalize",
+            }}
+          >
+            {user?.role}
+          </p>
+
+          {isSaving && (
+            <p
+              style={{
+                color: "var(--primary)",
+                fontSize: "0.75rem",
+                marginTop: "2px",
+              }}
+            >
+              Uploading...
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="card" style={{ padding: 0, marginBottom: "1.5rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem", borderBottom: "1px solid var(--border-color)" }}>
+      <div
+        className="card"
+        style={{
+          padding: 0,
+          marginBottom: "1.5rem",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+            padding: "1rem",
+            borderBottom: "1px solid var(--border-color)",
+          }}
+        >
           <Mail size={20} color="var(--text-muted)" />
+
           <div>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Email Address</p>
-            <p style={{ fontWeight: "500" }}>{user?.email}</p>
+            <p
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+              }}
+            >
+              Email Address
+            </p>
+
+            <p style={{ fontWeight: "500" }}>
+              {user?.email}
+            </p>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem" }}>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+            padding: "1rem",
+          }}
+        >
           <Shield size={20} color="var(--text-muted)" />
+
           <div>
-            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Account Type</p>
-            <p style={{ fontWeight: "500", textTransform: "capitalize" }}>{user?.role}</p>
+            <p
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+              }}
+            >
+              Account Type
+            </p>
+
+            <p
+              style={{
+                fontWeight: "500",
+                textTransform: "capitalize",
+              }}
+            >
+              {user?.role}
+            </p>
           </div>
         </div>
       </div>
 
-      <button className="btn" onClick={handleLogout} style={{ width: "100%", background: "#FEE2E2", color: "#B91C1C" }}>
-        <LogOut size={18} style={{ marginRight: "8px" }} /> Log Out
+      {/* Enable Push Notifications */}
+      <button
+        onClick={enableNotifications}
+        className="btn"
+        style={{
+          width: "100%",
+          background: "#F1F5F9",
+          color: "var(--text-main)",
+          marginBottom: "1rem",
+        }}
+      >
+        <Bell size={18} style={{ marginRight: "8px" }} />
+        Enable Push Notifications
+      </button>
+
+      {/* Log Out */}
+      <button
+        className="btn"
+        onClick={handleLogout}
+        style={{
+          width: "100%",
+          background: "#FEE2E2",
+          color: "#B91C1C",
+        }}
+      >
+        <LogOut size={18} style={{ marginRight: "8px" }} />
+        Log Out
       </button>
     </div>
   );

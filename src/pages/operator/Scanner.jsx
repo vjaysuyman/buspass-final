@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ScanLine, CheckCircle2, XCircle, Camera, Keyboard, QrCode } from "lucide-react";
-import { Html5Qrcode } from "html5-qrcode"; // ✅ KINI ANG GIPULI (walay 'Scanner' sa katapusan)
+import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "../../lib/supabaseClient";
 
 export default function Scanner() {
@@ -30,7 +30,23 @@ export default function Scanner() {
       } else if (booking.status === 'boarded') {
         setResult({ success: false, message: "Ticket Already Used" });
       } else if (booking.status === 'confirmed') {
+        // 1. I-update ang status sa database
         await supabase.from('bookings').update({ status: 'boarded' }).eq('id', booking.id);
+        
+        // 2. ✅ I-trigger ang push notification ngadto sa pasahero
+        try {
+          await supabase.functions.invoke('send-ticket-notification', {
+            body: {
+              user_id: booking.user_id, // Ang ID sa pasahero
+              title: "Ticket Verified! ✅",
+              message: `You have successfully boarded the bus for seat(s) ${booking.seats.join(", ")}. Have a safe trip!`
+            }
+          });
+        } catch (notifErr) {
+          console.error("Notification error:", notifErr);
+          // Ayaw i-block ang verification kung mapakyas ang notification
+        }
+
         setResult({ success: true, message: "Verified Successfully!", booking });
       } else {
         setResult({ success: false, message: "Ticket is not paid/confirmed" });
@@ -49,7 +65,6 @@ export default function Scanner() {
     setTicketRef(""); 
   };
 
-  // ✅ BAG-ONG CAMERA LOGIC GAMIT ANG Html5Qrcode
   useEffect(() => {
     if (!isCameraActive) {
       if (scannerRef.current) {
@@ -62,14 +77,13 @@ export default function Scanner() {
     }
 
     if (isCameraActive && !scannerRef.current) {
-      const html5QrCode = new Html5Qrcode("reader"); // ✅ PRO MODE
+      const html5QrCode = new Html5Qrcode("reader");
       scannerRef.current = html5QrCode;
 
       html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          // ✅ DERETSO NGA I-VERIFY UG DILI I-DISPLAY SA LIBRARY UI
           html5QrCode.stop().then(() => {
             html5QrCode.clear();
             scannerRef.current = null;
@@ -143,7 +157,6 @@ export default function Scanner() {
 
       {activeTab === "camera" && (
         <div className="card" style={{ padding: "1.5rem", minHeight: "350px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          {/* KINI NGA DIV ANG GAMITON SA CAMERA, AYAW I-UNMOUNT */}
           <div id="reader" style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: isCameraActive ? "2px solid var(--primary)" : "none", display: isCameraActive ? "block" : "none" }}></div>
           
           {!isCameraActive && (
