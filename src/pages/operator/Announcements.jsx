@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, X, Megaphone } from "lucide-react";
 import { announcementApi } from "../../services/announcementApi";
+import { supabase } from "../../lib/supabaseClient"; // ✅ Gidugang
 
 export default function Announcements() {
   const [announcements, setAnnouncements] = useState([]);
@@ -12,6 +13,8 @@ export default function Announcements() {
     content: "",
     type: "info"
   });
+
+// ... (ang uban nimong code parehas ra sa imoha)
 
   const loadAnnouncements = async () => {
     setIsLoading(true);
