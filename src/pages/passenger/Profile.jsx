@@ -16,7 +16,6 @@ export default function Profile() {
 
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
-
     if (file) {
       try {
         setIsSaving(true);
@@ -25,234 +24,83 @@ export default function Profile() {
         alert("Failed to upload image: " + error.message);
       } finally {
         setIsSaving(false);
-        e.target.value = ""; // Reset aron makabalik-upload sa parehong file
+        e.target.value = "";
       }
     }
   };
 
-  // Enable OneSignal push notifications
+  // ✅ ENHANCED ONESIGNAL LOGIC
   const enableNotifications = async () => {
     try {
+      // 1. Pangayo og permission sa browser
       await OneSignal.Notifications.requestPermission();
-      alert("Push notifications enabled!");
+      
+      // 2. I-check kung naa bay user nga naka-login, dayon i-login sa OneSignal
+      if (user?.id) {
+        await OneSignal.login(user.id);
+        alert("Push notifications enabled! You will now receive updates.");
+      } else {
+        alert("Please log in first to enable notifications.");
+      }
     } catch (error) {
       console.error("Error enabling notifications:", error);
-      alert("Failed to enable push notifications.");
+      alert("Failed to enable push notifications: " + error.message);
     }
   };
 
   return (
     <div style={{ padding: "1rem" }}>
-      <h2
-        style={{
-          fontSize: "1.5rem",
-          fontWeight: "700",
-          marginBottom: "1.5rem",
-          color: "var(--text-main)",
-        }}
-      >
+      <h2 style={{ fontSize: "1.5rem", fontWeight: "700", marginBottom: "1.5rem", color: "var(--text-main)" }}>
         Profile Settings
       </h2>
 
-      <div
-        className="card"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "1rem",
-          marginBottom: "1.5rem",
-        }}
-      >
-        {/* Avatar with upload overlay */}
+      <div className="card" style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.5rem" }}>
         <div style={{ position: "relative", flexShrink: 0 }}>
           {user?.avatar_url ? (
-            <img
-              src={user.avatar_url}
-              alt="avatar"
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: "50%",
-                objectFit: "cover",
-                border: "2px solid #ccfbf1",
-              }}
-            />
+            <img src={user.avatar_url} alt="avatar" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", border: "2px solid #ccfbf1" }} />
           ) : (
-            <div
-              style={{
-                background: "#ccfbf1",
-                color: "var(--primary)",
-                padding: "1rem",
-                borderRadius: "50%",
-                width: 64,
-                height: 64,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
+            <div style={{ background: "#ccfbf1", color: "var(--primary)", padding: "1rem", borderRadius: "50%", width: 64, height: 64, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <User size={32} />
             </div>
           )}
 
-          {/* Camera button */}
-          <label
-            style={{
-              position: "absolute",
-              bottom: -2,
-              right: -2,
-              background: "var(--primary)",
-              color: "white",
-              borderRadius: "50%",
-              width: 24,
-              height: 24,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: isSaving ? "wait" : "pointer",
-              opacity: isSaving ? 0.6 : 1,
-              boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-            }}
-          >
+          <label style={{ position: "absolute", bottom: -2, right: -2, background: "var(--primary)", color: "white", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", cursor: isSaving ? "wait" : "pointer", opacity: isSaving ? 0.6 : 1, boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}>
             <Camera size={14} />
-
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              disabled={isSaving}
-              style={{ display: "none" }}
-            />
+            <input type="file" accept="image/*" onChange={handleImageChange} disabled={isSaving} style={{ display: "none" }} />
           </label>
         </div>
 
         <div style={{ minWidth: 0 }}>
-          <h3
-            style={{
-              fontSize: "1.2rem",
-              fontWeight: "700",
-            }}
-          >
-            {user?.first_name} {user?.last_name}
-          </h3>
-
-          <p
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "0.875rem",
-              textTransform: "capitalize",
-            }}
-          >
-            {user?.role}
-          </p>
-
-          {isSaving && (
-            <p
-              style={{
-                color: "var(--primary)",
-                fontSize: "0.75rem",
-                marginTop: "2px",
-              }}
-            >
-              Uploading...
-            </p>
-          )}
+          <h3 style={{ fontSize: "1.2rem", fontWeight: "700" }}>{user?.first_name} {user?.last_name}</h3>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", textTransform: "capitalize" }}>{user?.role}</p>
+          {isSaving && <p style={{ color: "var(--primary)", fontSize: "0.75rem", marginTop: "2px" }}>Uploading...</p>}
         </div>
       </div>
 
-      <div
-        className="card"
-        style={{
-          padding: 0,
-          marginBottom: "1.5rem",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            padding: "1rem",
-            borderBottom: "1px solid var(--border-color)",
-          }}
-        >
+      <div className="card" style={{ padding: 0, marginBottom: "1.5rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem", borderBottom: "1px solid var(--border-color)" }}>
           <Mail size={20} color="var(--text-muted)" />
-
           <div>
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--text-muted)",
-              }}
-            >
-              Email Address
-            </p>
-
-            <p style={{ fontWeight: "500" }}>
-              {user?.email}
-            </p>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Email Address</p>
+            <p style={{ fontWeight: "500" }}>{user?.email}</p>
           </div>
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "1rem",
-            padding: "1rem",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem" }}>
           <Shield size={20} color="var(--text-muted)" />
-
           <div>
-            <p
-              style={{
-                fontSize: "0.75rem",
-                color: "var(--text-muted)",
-              }}
-            >
-              Account Type
-            </p>
-
-            <p
-              style={{
-                fontWeight: "500",
-                textTransform: "capitalize",
-              }}
-            >
-              {user?.role}
-            </p>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Account Type</p>
+            <p style={{ fontWeight: "500", textTransform: "capitalize" }}>{user?.role}</p>
           </div>
         </div>
       </div>
 
-      {/* Enable Push Notifications */}
-      <button
-        onClick={enableNotifications}
-        className="btn"
-        style={{
-          width: "100%",
-          background: "#F1F5F9",
-          color: "var(--text-main)",
-          marginBottom: "1rem",
-        }}
-      >
-        <Bell size={18} style={{ marginRight: "8px" }} />
-        Enable Push Notifications
+      {/* ✅ PUSH NOTIFICATION BUTTON */}
+      <button onClick={enableNotifications} className="btn" style={{ width: "100%", background: "#F1F5F9", color: "var(--text-main)", marginBottom: "1rem", border: "1px solid var(--border-color)" }}>
+        <Bell size={18} style={{ marginRight: "8px" }} /> Enable Push Notifications
       </button>
 
-      {/* Log Out */}
-      <button
-        className="btn"
-        onClick={handleLogout}
-        style={{
-          width: "100%",
-          background: "#FEE2E2",
-          color: "#B91C1C",
-        }}
-      >
-        <LogOut size={18} style={{ marginRight: "8px" }} />
-        Log Out
+      <button className="btn" onClick={handleLogout} style={{ width: "100%", background: "#FEE2E2", color: "#B91C1C" }}>
+        <LogOut size={18} style={{ marginRight: "8px" }} /> Log Out
       </button>
     </div>
   );
