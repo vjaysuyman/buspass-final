@@ -30,21 +30,18 @@ export default function Scanner() {
       } else if (booking.status === 'boarded') {
         setResult({ success: false, message: "Ticket Already Used" });
       } else if (booking.status === 'confirmed') {
-        // 1. I-update ang status sa database
         await supabase.from('bookings').update({ status: 'boarded' }).eq('id', booking.id);
         
-        // 2. ✅ I-trigger ang push notification ngadto sa pasahero
         try {
           await supabase.functions.invoke('send-ticket-notification', {
             body: {
-              user_id: booking.user_id, // Ang ID sa pasahero
+              user_id: booking.user_id,
               title: "Ticket Verified! ✅",
               message: `You have successfully boarded the bus for seat(s) ${booking.seats.join(", ")}. Have a safe trip!`
             }
           });
         } catch (notifErr) {
           console.error("Notification error:", notifErr);
-          // Ayaw i-block ang verification kung mapakyas ang notification
         }
 
         setResult({ success: true, message: "Verified Successfully!", booking });
@@ -65,46 +62,57 @@ export default function Scanner() {
     setTicketRef(""); 
   };
 
-  useEffect(() => {
-    if (!isCameraActive) {
-      if (scannerRef.current) {
-        scannerRef.current.stop().then(() => {
-          scannerRef.current.clear();
-          scannerRef.current = null;
-        }).catch(console.error);
+  // ✅ HINLO NGA START CAMERA
+  const startCamera = () => {
+    setIsCameraActive(true);
+  };
+
+  // ✅ HINLO NGA STOP CAMERA
+  const stopCamera = async () => {
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current.clear();
+        scannerRef.current = null;
+      } catch (err) {
+        console.error("Error stopping camera:", err);
       }
-      return;
     }
+    setIsCameraActive(false);
+  };
 
-    if (isCameraActive && !scannerRef.current) {
-      const html5QrCode = new Html5Qrcode("reader");
-      scannerRef.current = html5QrCode;
+  // ✅ ANG LOGIC SA CAMERA KAY NAA DINHI
+  useEffect(() => {
+    if (!isCameraActive) return;
 
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-            scannerRef.current = null;
-            setIsCameraActive(false);
-            verifyTicket(decodedText);
-          }).catch(console.error);
-        },
-        (errorMessage) => {}
-      ).catch((err) => {
+    // Gamay nga delay aron masiguro nga ang div ma-render una
+    const timer = setTimeout(async () => {
+      try {
+        if (!scannerRef.current) {
+          const html5QrCode = new Html5Qrcode("reader");
+          scannerRef.current = html5QrCode;
+
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            (decodedText) => {
+              // Kung naay ma-scan, i-stop dayon ug verify
+              stopCamera().then(() => verifyTicket(decodedText));
+            },
+            (errorMessage) => {}
+          );
+        }
+      } catch (err) {
         console.error("Failed to start camera:", err);
         alert("Could not start camera. Please check permissions.");
         setIsCameraActive(false);
-      });
-    }
+      }
+    }, 100);
 
     return () => {
+      clearTimeout(timer);
       if (scannerRef.current) {
-        scannerRef.current.stop().then(() => {
-          scannerRef.current.clear();
-          scannerRef.current = null;
-        }).catch(console.error);
+        scannerRef.current.stop().catch(console.error);
       }
     };
   }, [isCameraActive]);
@@ -142,13 +150,13 @@ export default function Scanner() {
 
       <div style={{ display: "flex", background: "#E2E8F0", padding: "4px", borderRadius: "12px", marginBottom: "1.5rem" }}>
         <button 
-          onClick={() => { setActiveTab("camera"); setIsCameraActive(true); }} 
+          onClick={() => { setActiveTab("camera"); startCamera(); }} 
           style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer", background: activeTab === "camera" ? "white" : "transparent", color: activeTab === "camera" ? "var(--primary)" : "var(--text-muted)", boxShadow: activeTab === "camera" ? "0 2px 4px rgba(0,0,0,0.05)" : "none", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", transition: "all 0.2s" }}
         >
           <Camera size={18} /> Camera
         </button>
         <button 
-          onClick={() => { setActiveTab("manual"); setIsCameraActive(false); }} 
+          onClick={() => { setActiveTab("manual"); stopCamera(); }} 
           style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer", background: activeTab === "manual" ? "white" : "transparent", color: activeTab === "manual" ? "var(--primary)" : "var(--text-muted)", boxShadow: activeTab === "manual" ? "0 2px 4px rgba(0,0,0,0.05)" : "none", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", transition: "all 0.2s" }}
         >
           <Keyboard size={18} /> Manual
@@ -157,7 +165,19 @@ export default function Scanner() {
 
       {activeTab === "camera" && (
         <div className="card" style={{ padding: "1.5rem", minHeight: "350px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div id="reader" style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: isCameraActive ? "2px solid var(--primary)" : "none", display: isCameraActive ? "block" : "none" }}></div>
+          
+          {/* ✅ ANG DIV NGA NAAY ID="READER" KAY DILI NA NATO TANGGALON. 
+              ATONG ITAGO PINAAGI SA CSS KUNG WALA GIPAON ANG CAMERA */}
+          <div 
+            id="reader" 
+            style={{ 
+              width: "100%", 
+              borderRadius: "12px", 
+              overflow: "hidden", 
+              border: isCameraActive ? "2px solid var(--primary)" : "none", 
+              display: isCameraActive ? "block" : "none" 
+            }}
+          ></div>
           
           {!isCameraActive && (
             <div style={{ textAlign: "center" }}>
@@ -169,7 +189,7 @@ export default function Scanner() {
                 Align the QR code within the frame to verify the ticket.
               </p>
               <button 
-                onClick={() => setIsCameraActive(true)} 
+                onClick={startCamera} 
                 className="btn btn-primary" 
                 style={{ width: "100%", maxWidth: "300px" }}
               >
@@ -180,7 +200,7 @@ export default function Scanner() {
 
           {isCameraActive && (
             <button 
-              onClick={() => setIsCameraActive(false)}
+              onClick={stopCamera}
               className="btn" 
               style={{ width: "100%", marginTop: "1rem", background: "#FEE2E2", color: "#B91C1C" }}
             >

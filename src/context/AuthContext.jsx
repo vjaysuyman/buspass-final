@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
-import OneSignal from 'react-onesignal'; // ✅ IMPORTANTE: I-import ang OneSignal
+import OneSignal from 'react-onesignal';
+import { PushNotifications } from '@capacitor/push-notifications';
+import { Capacitor } from '@capacitor/core';
 
 const AuthContext = createContext(null);
 
@@ -22,18 +24,40 @@ export function AuthProvider({ children }) {
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         fetchProfile(session.user);
-        // ✅ KINI ANG MAG-LINK SA USER SA ONESIGNAL INIG-LOGIN
-        OneSignal.login(session.user.id); 
+        OneSignal.login(session.user.id);
       } else {
         setUser(null);
         setLoading(false);
-        // ✅ I-logout ang user sa OneSignal
         OneSignal.logout();
       }
     });
 
     return () => authListener.subscription.unsubscribe();
   }, []);
+
+  // ✅ FCM Token Logic (Capacitor push notifications)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      const initPush = async () => {
+        let permStatus = await PushNotifications.checkPermissions();
+        if (permStatus.receive === 'prompt') {
+          permStatus = await PushNotifications.requestPermissions();
+        }
+        if (permStatus.receive !== 'granted') return;
+
+        await PushNotifications.register();
+
+        PushNotifications.addListener('registration', async (token) => {
+          console.log('FCM Token:', token.value);
+          if (user) {
+            // I-save ang token sa Supabase profiles table
+            await supabase.from('profiles').update({ fcm_token: token.value }).eq('id', user.id);
+          }
+        });
+      };
+      initPush();
+    }
+  }, [user]);
 
   // Function para makuha ang Role (operator/passenger) gikan sa profiles table
   const fetchProfile = async (authUser) => {
@@ -46,7 +70,7 @@ export function AuthProvider({ children }) {
     if (!error && data) {
       setUser({ ...authUser, ...data });
     } else {
-      setUser(authUser); // Fallback kung wala pay profile
+      setUser(authUser);
     }
     setLoading(false);
   };
@@ -61,7 +85,7 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut();
   };
 
-  // ✅ BAG-O: Upload avatar sa Supabase Storage + update profile
+  // ✅ Upload avatar sa Supabase Storage + update profile
   const uploadAvatar = async (file) => {
     if (!user) throw new Error("No user");
 
@@ -69,19 +93,16 @@ export function AuthProvider({ children }) {
     const fileName = `${user.id}-${Math.random()}.${fileExt}`;
     const filePath = `${user.id}/${fileName}`;
 
-    // 1. Upload sa Storage
     const { error: uploadError } = await supabase.storage
       .from("avatars")
       .upload(filePath, file, { upsert: true });
 
     if (uploadError) throw uploadError;
 
-    // 2. Kuhaa ang public URL
     const { data: { publicUrl } } = supabase.storage
       .from("avatars")
       .getPublicUrl(filePath);
 
-    // 3. I-update ang profile table
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ avatar_url: publicUrl })
@@ -89,7 +110,6 @@ export function AuthProvider({ children }) {
 
     if (updateError) throw updateError;
 
-    // 4. I-update ang local state
     setUser({ ...user, avatar_url: publicUrl });
     return publicUrl;
   };
